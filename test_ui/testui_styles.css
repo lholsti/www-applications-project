@@ -1,0 +1,10 @@
+.big_image {
+	width: 500px;
+	max-height: auto;
+}
+
+.button_link {
+	padding: 10px 15px;
+	background: #4570BB;
+	color: #FFF;
+}
