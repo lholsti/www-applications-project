@@ -6,8 +6,9 @@ $( document ).ready(function() {
     		this.contrast(30);
     		this.sepia(60);
     		this.saturation(-30);
+    		console.time("render");
     		this.render();
+    		console.timeEnd("render");
   		});
-  
-	})
+	});
 })
