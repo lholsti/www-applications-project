@@ -1,5 +1,11 @@
 $( document ).ready(function() {
 	$("#test_link").click(function() {
+
+        Caman.Event.listen("renderFinished", function () {
+            console.log("done");
+            console.timeEnd("render");
+        });
+
 		console.log("Testing");
 		Caman('#pergola', function () {
     		this.brightness(10);
@@ -8,7 +14,7 @@ $( document ).ready(function() {
     		this.saturation(-30);
     		console.time("render");
     		this.render();
-    		console.timeEnd("render");
   		});
+
 	});
 })
