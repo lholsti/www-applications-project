@@ -3,7 +3,7 @@ $( document ).ready(function() {
 
         Caman.Event.listen("renderFinished", function () {
             console.log("done");
-            console.timeEnd("render");
+            console.timeEnd("total render");
         });
 
 		console.log("Testing");
@@ -12,9 +12,14 @@ $( document ).ready(function() {
     		this.contrast(30);
     		this.sepia(60);
     		this.saturation(-30);
-    		console.time("render");
+    		console.time("total render");
+            console.time("partial render");
     		this.render();
+            console.timeEnd("partial render");
   		});
 
 	});
+    $("#print_button").click(function() {
+        console.log('UI is responding'+ new Date());
+    });
 })

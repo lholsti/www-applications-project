@@ -1880,6 +1880,7 @@
         if (this.finishedFn != null) {
           this.finishedFn.call(this.c);
         }
+
         return this;
       }
       this.currentJob = this.renderQueue.shift();
@@ -1928,7 +1929,10 @@
         } else {
           _results.push(setTimeout((function(i, start, end) {
             return function() {
-              return fn.call(_this, i, start, end);
+              console.time("partial render");
+              val = fn.call(_this, i, start, end);
+              console.timeEnd("partial render");
+              return val;
             };
           })(i, start, end), 0));
         }
