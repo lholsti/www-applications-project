@@ -1,0 +1,159 @@
+npm info it worked if it ends with ok
+npm info using npm@1.4.28
+npm info using node@v0.10.33
+npm info preinstall caman@4.1.2
+npm WARN package.json docco@0.6.2 No repository field.
+npm WARN package.json karma-chrome-launcher@0.1.7 No README data
+npm WARN package.json karma-firefox-launcher@0.1.4 No README data
+npm WARN package.json karma-phantomjs-launcher@0.1.4 No README data
+npm info trying registry request attempt 1 at 12:24:49
+npm http GET https://registry.npmjs.org/canvas
+npm http 304 https://registry.npmjs.org/canvas
+npm info install canvas@1.2.1 into /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled
+npm info installOne canvas@1.2.1
+npm info preinstall canvas@1.2.1
+npm info trying registry request attempt 1 at 12:24:52
+npm http GET https://registry.npmjs.org/nan
+npm http 304 https://registry.npmjs.org/nan
+npm info install nan@1.5.3 into /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/canvas
+npm info installOne nan@1.5.3
+npm info preinstall nan@1.5.3
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/canvas/node_modules/nan
+npm info linkStuff nan@1.5.3
+npm info install nan@1.5.3
+npm info postinstall nan@1.5.3
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/canvas
+npm info linkStuff canvas@1.2.1
+npm info install canvas@1.2.1
+
+> canvas@1.2.1 install /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/canvas
+> node-gyp rebuild
+
+gyp info it worked if it ends with ok
+gyp info using node-gyp@1.0.1
+gyp info using node@0.10.33 | darwin | x64
+gyp info spawn python
+gyp info spawn args [ '/usr/local/lib/node_modules/npm/node_modules/node-gyp/gyp/gyp_main.py',
+gyp info spawn args   'binding.gyp',
+gyp info spawn args   '-f',
+gyp info spawn args   'make',
+gyp info spawn args   '-I',
+gyp info spawn args   '/Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/canvas/build/config.gypi',
+gyp info spawn args   '-I',
+gyp info spawn args   '/usr/local/lib/node_modules/npm/node_modules/node-gyp/addon.gypi',
+gyp info spawn args   '-I',
+gyp info spawn args   '/Users/lholsti/.node-gyp/0.10.33/common.gypi',
+gyp info spawn args   '-Dlibrary=shared_library',
+gyp info spawn args   '-Dvisibility=default',
+gyp info spawn args   '-Dnode_root_dir=/Users/lholsti/.node-gyp/0.10.33',
+gyp info spawn args   '-Dmodule_root_dir=/Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/canvas',
+gyp info spawn args   '--depth=.',
+gyp info spawn args   '--no-parallel',
+gyp info spawn args   '--generator-output',
+gyp info spawn args   'build',
+gyp info spawn args   '-Goutput_dir=.' ]
+gyp info spawn make
+gyp info spawn args [ 'BUILDTYPE=Release', '-C', 'build' ]
+  SOLINK_MODULE(target) Release/canvas-postbuild.node
+  SOLINK_MODULE(target) Release/canvas-postbuild.node: Finished
+  CXX(target) Release/obj.target/canvas/src/Canvas.o
+  CXX(target) Release/obj.target/canvas/src/CanvasGradient.o
+  CXX(target) Release/obj.target/canvas/src/CanvasPattern.o
+In file included from ../src/CanvasPattern.cc:10:
+../src/CanvasPattern.h:23:9: warning: private field '_width' is not used [-Wunused-private-field]
+    int _width, _height;
+        ^
+../src/CanvasPattern.h:23:17: warning: private field '_height' is not used [-Wunused-private-field]
+    int _width, _height;
+                ^
+2 warnings generated.
+  CXX(target) Release/obj.target/canvas/src/CanvasRenderingContext2d.o
+../src/CanvasRenderingContext2d.cc:374:22: warning: unused variable 'surface' [-Wunused-variable]
+    cairo_surface_t *surface = cairo_get_group_target(_context);
+                     ^
+1 warning generated.
+  CXX(target) Release/obj.target/canvas/src/color.o
+  CXX(target) Release/obj.target/canvas/src/Image.o
+  CXX(target) Release/obj.target/canvas/src/ImageData.o
+  CXX(target) Release/obj.target/canvas/src/init.o
+  CXX(target) Release/obj.target/canvas/src/PixelArray.o
+  SOLINK_MODULE(target) Release/canvas.node
+  SOLINK_MODULE(target) Release/canvas.node: Finished
+gyp info ok 
+npm info postinstall canvas@1.2.1
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled
+npm info linkStuff caman@4.1.2
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/karma-chrome-launcher
+npm info preinstall karma-chrome-launcher@0.1.7
+npm info linkStuff karma-chrome-launcher@0.1.7
+npm info install karma-chrome-launcher@0.1.7
+npm info postinstall karma-chrome-launcher@0.1.7
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/karma-coffee-preprocessor
+npm info preinstall karma-coffee-preprocessor@0.1.3
+npm info linkStuff karma-coffee-preprocessor@0.1.3
+npm info install karma-coffee-preprocessor@0.1.3
+npm info postinstall karma-coffee-preprocessor@0.1.3
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/karma-firefox-launcher
+npm info preinstall karma-firefox-launcher@0.1.4
+npm info linkStuff karma-firefox-launcher@0.1.4
+npm info install karma-firefox-launcher@0.1.4
+npm info postinstall karma-firefox-launcher@0.1.4
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/karma-html2js-preprocessor
+npm info preinstall karma-html2js-preprocessor@0.1.0
+npm info linkStuff karma-html2js-preprocessor@0.1.0
+npm info install karma-html2js-preprocessor@0.1.0
+npm info postinstall karma-html2js-preprocessor@0.1.0
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/karma-jasmine
+npm info preinstall karma-jasmine@0.1.5
+npm info linkStuff karma-jasmine@0.1.5
+npm info install karma-jasmine@0.1.5
+npm info postinstall karma-jasmine@0.1.5
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/karma-phantomjs-launcher
+npm info preinstall karma-phantomjs-launcher@0.1.4
+npm info linkStuff karma-phantomjs-launcher@0.1.4
+npm info install karma-phantomjs-launcher@0.1.4
+npm info postinstall karma-phantomjs-launcher@0.1.4
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/karma-requirejs
+npm info preinstall karma-requirejs@0.2.2
+npm info linkStuff karma-requirejs@0.2.2
+npm info install karma-requirejs@0.2.2
+npm info postinstall karma-requirejs@0.2.2
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/karma-script-launcher
+npm info preinstall karma-script-launcher@0.1.0
+npm info linkStuff karma-script-launcher@0.1.0
+npm info install karma-script-launcher@0.1.0
+npm info postinstall karma-script-launcher@0.1.0
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/mocha
+npm info preinstall mocha@2.2.1
+npm info linkStuff mocha@2.2.1
+npm info install mocha@2.2.1
+npm info postinstall mocha@2.2.1
+npm info build /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/node_modules/requirejs
+npm info preinstall requirejs@2.1.17
+npm info linkStuff requirejs@2.1.17
+npm info install requirejs@2.1.17
+npm info postinstall requirejs@2.1.17
+npm info install caman@4.1.2
+npm info postinstall caman@4.1.2
+npm info prepublish caman@4.1.2
+npm ERR! peerinvalid The package karma does not satisfy its siblings' peerDependencies requirements!
+npm ERR! peerinvalid Peer karma-mocha@0.1.10 wants karma@>=0.12.8
+npm ERR! peerinvalid Peer karma-chrome-launcher@0.1.7 wants karma@>=0.9.3
+npm ERR! peerinvalid Peer karma-firefox-launcher@0.1.4 wants karma@>=0.9
+npm ERR! peerinvalid Peer karma-html2js-preprocessor@0.1.0 wants karma@>=0.9
+npm ERR! peerinvalid Peer karma-jasmine@0.1.5 wants karma@>=0.9
+npm ERR! peerinvalid Peer karma-requirejs@0.2.2 wants karma@>=0.9
+npm ERR! peerinvalid Peer karma-script-launcher@0.1.0 wants karma@>=0.9
+npm ERR! peerinvalid Peer karma-coffee-preprocessor@0.1.3 wants karma@>=0.9
+npm ERR! peerinvalid Peer karma-phantomjs-launcher@0.1.4 wants karma@>=0.9
+
+npm ERR! System Darwin 13.4.0
+npm ERR! command "node" "/usr/local/bin/npm" "install" "-d"
+npm ERR! cwd /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled
+npm ERR! node -v v0.10.33
+npm ERR! npm -v 1.4.28
+npm ERR! code EPEERINVALID
+npm ERR! 
+npm ERR! Additional logging details can be found in:
+npm ERR!     /Users/lholsti/Sites/koulu/www-applications-project/CamanJS-crippled/npm-debug.log
+npm ERR! not ok code 0

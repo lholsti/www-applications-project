@@ -45,6 +45,11 @@ class Caman.Renderer
     @finishedFn = callback
     @modPixelData = Util.dataArray(@c.pixelData.length)
 
+    @worker = new Worker('../../dist/worker.js')
+    @worker.addEventListener('message', (e) ->
+      console.log 'worker said: ' +e.data)
+    @worker.postMessage = @worker.webkitPostMessage or @worker.postMessage
+
     @processNext()
 
   eachBlock: (fn) ->
@@ -65,9 +70,25 @@ class Caman.Renderer
         bnum = f.run()
         @blockFinished(bnum)
       else
-        setTimeout do (i, start, end) =>
-          => fn.call(@, i, start, end)
-        , 0
+        ### TODO
+        - push returned data to context (@c)
+        - maybe ask for data only after checking if next filter is kernel as well
+        - maybe implement commands for workers
+          - change filter
+          - run filter
+          - here's image data
+          - getData
+        ###
+        console.time 'partial render'
+        myfn = (e) -> console.log(e)
+        @worker.postMessage window.JSONfn.stringify fn
+
+        #arraybuffer with image data, ie. transferable object that can be sent to worker
+        ab = @c.context.getImageData( 0, 0, @c.canvas.width, @c.canvas.height ).data.buffer
+        @worker.postMessage(ab, [ab])
+
+        # fn.call(@, i, start, end)
+        console.timeEnd 'partial render'
 
   # The core of the image rendering, this function executes the provided filter.
   #

@@ -66,7 +66,9 @@ class Caman.Renderer
         @blockFinished(bnum)
       else
         setTimeout do (i, start, end) =>
-          => fn.call(@, i, start, end)
+          console.time 'partial render' 
+          fn.call(@, i, start, end)
+          console.timeEnd 'partial render'
         , 0
 
   # The core of the image rendering, this function executes the provided filter.

@@ -3,7 +3,7 @@
 class Caman.Renderer
   # The number of blocks to split the image into during the render process to simulate 
   # concurrency. This also helps the browser manage the (possibly) long running render jobs.
-  @Blocks = if Caman.NodeJS then require('os').cpus().length else 4
+  @Blocks = if Caman.NodeJS then require('os').cpus().length else 1
 
   constructor: (@c) ->
     @renderQueue = []
@@ -65,9 +65,9 @@ class Caman.Renderer
         bnum = f.run()
         @blockFinished(bnum)
       else
-        setTimeout do (i, start, end) =>
-          => fn.call(@, i, start, end)
-        , 0
+        console.time 'partial render '
+        fn.call(@, i, start, end)
+        console.timeEnd 'partial render'
 
   # The core of the image rendering, this function executes the provided filter.
   #

@@ -122,6 +122,7 @@ task 'watch', 'Automatically recompile the CoffeeScript files when updated', (op
 task 'build', 'Compile and minify all CoffeeScript source files', ->
   finishListener 'js', -> invoke 'minify'
   invoke 'compile'
+  invoke 'compile-worker'
 
 option '-m', '--map', 'Compile with source maps'
 task 'compile', 'Compile all CoffeeScript source files', (options) ->
@@ -179,7 +180,6 @@ task 'compile', 'Compile all CoffeeScript source files', (options) ->
             #   fs.unlink "#{targetCoffee}.full.coffee", (err) -> util.log err if err
               
             finished('js')
-    
         
 task 'minify', 'Minify the CoffeeScript files', ->
   util.log "Minifying #{targetCoreJS}"
@@ -201,3 +201,9 @@ task 'minify', 'Minify the CoffeeScript files', ->
       util.log "Packing #{targetFullJS}"
       fs.writeFile targetFullPackJS, packer.pack(contents, true), "utf8", (err) ->
         util.log err if err
+
+task 'compile-worker', 'Compile worker CoffeeScript source file', (options) ->
+  exec "coffee -c -o dist/ src/core/worker.coffee", (err, stdout, stderr) ->
+    util.log err if err
+    util.log "Compiled worker"
+    finished('js')
