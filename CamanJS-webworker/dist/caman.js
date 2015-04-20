@@ -607,7 +607,6 @@
       Event.trigger(this, "renderStart");
       return this.renderer.execute((function(_this) {
         return function() {
-          _this.context.putImageData(_this.imageData, 0, 0);
           return callback.call(_this);
         };
       })(this));
@@ -1870,8 +1869,6 @@
   Plugin = Caman.Plugin;
 
   Caman.Renderer = (function() {
-    Renderer.Blocks = Caman.NodeJS ? require('os').cpus().length : 4;
-
     function Renderer(c1) {
       this.c = c1;
       this.processNext = bind(this.processNext, this);
@@ -1893,6 +1890,9 @@
         if (this.finishedFn != null) {
           this.finishedFn.call(this.c);
         }
+        this.worker.postMessage({
+          'cmd': 'sendResults'
+        });
         return this;
       }
       this.currentJob = this.renderQueue.shift();
@@ -1915,65 +1915,60 @@
     };
 
     Renderer.prototype.execute = function(callback) {
+      var ab;
       this.finishedFn = callback;
       this.modPixelData = Util.dataArray(this.c.pixelData.length);
       this.worker = new Worker('../../dist/worker.js');
-      this.worker.addEventListener('message', function(e) {
-        return console.log('worker said: ' + e.data);
-      });
+      this.worker.addEventListener('message', (function(_this) {
+        return function(e) {
+          var i, newdata, o, ref;
+          if (e.data.cmd != null) {
+            switch (e.data.cmd) {
+              case "filterDone":
+                return _this.processNext();
+              default:
+                return Log.debug('unknown command');
+            }
+          } else if (typeof e.data === 'string') {
+            return Log.debug(e.data);
+          } else {
+            Log.debug('image data sent from worker');
+            newdata = new Uint8Array(e.data);
+            for (i = o = 0, ref = _this.c.pixelData.length; 0 <= ref ? o < ref : o > ref; i = 0 <= ref ? ++o : --o) {
+              _this.c.imageData.data[i] = newdata[i];
+            }
+            return _this.c.context.putImageData(_this.c.imageData, 0, 0);
+          }
+        };
+      })(this));
       this.worker.postMessage = this.worker.webkitPostMessage || this.worker.postMessage;
+      ab = this.c.context.getImageData(0, 0, this.c.canvas.width, this.c.canvas.height).data.buffer;
+      this.worker.postMessage(ab, [ab]);
       return this.processNext();
-    };
-
-    Renderer.prototype.eachBlock = function(fn) {
-      var ab, blockN, blockPixelLength, bnum, end, f, i, lastBlockN, myfn, n, o, ref, results, start;
-      this.blocksDone = 0;
-      n = this.c.pixelData.length;
-      blockPixelLength = Math.floor((n / 4) / Renderer.Blocks);
-      blockN = blockPixelLength * 4;
-      lastBlockN = blockN + ((n / 4) % Renderer.Blocks) * 4;
-      results = [];
-      for (i = o = 0, ref = Renderer.Blocks; 0 <= ref ? o < ref : o > ref; i = 0 <= ref ? ++o : --o) {
-        start = i * blockN;
-        end = start + (i === Renderer.Blocks - 1 ? lastBlockN : blockN);
-        if (Caman.NodeJS) {
-          f = Fiber((function(_this) {
-            return function() {
-              return fn.call(_this, i, start, end);
-            };
-          })(this));
-          bnum = f.run();
-          results.push(this.blockFinished(bnum));
-        } else {
-
-          /* TODO
-          - push returned data to context (@c)
-          - maybe ask for data only after checking if next filter is kernel as well
-          - maybe implement commands for workers
-            - change filter
-            - run filter
-            - here's image data
-            - getData
-           */
-          console.time('partial render');
-          myfn = function(e) {
-            return console.log(e);
-          };
-          this.worker.postMessage(window.JSONfn.stringify(fn));
-          ab = this.c.context.getImageData(0, 0, this.c.canvas.width, this.c.canvas.height).data.buffer;
-          this.worker.postMessage(ab, [ab]);
-          results.push(console.timeEnd('partial render'));
-        }
-      }
-      return results;
     };
 
     Renderer.prototype.executeFilter = function() {
       Event.trigger(this.c, "processStart", this.currentJob);
       if (this.currentJob.type === Filter.Type.Single) {
-        return this.eachBlock(this.renderBlock);
+
+        /* TODO
+        - push returned data to context (@c)
+        - maybe ask for data only after checking if next filter is kernel as well
+        - maybe implement commands for workers
+          - change filter
+          - run filter
+          - here's image data
+          - getData
+         */
+        Log.debug(this.currentJob.processFn);
+        return this.worker.postMessage({
+          'cmd': 'renderFilter',
+          'filter': window.JSONfn.stringify(this.currentJob.processFn)
+        });
       } else {
-        return this.eachBlock(this.renderKernel);
+        return this.worker.postMessage({
+          'cmd': window.JSONfn.stringify(this.renderKernel)
+        });
       }
     };
 
@@ -1984,38 +1979,8 @@
       return this.processNext();
     };
 
-    Renderer.prototype.renderBlock = function(bnum, start, end) {
-      var i, o, pixel, ref, ref1;
-      Log.debug("Block #" + bnum + " - Filter: " + this.currentJob.name + ", Start: " + start + ", End: " + end);
-      Event.trigger(this.c, "blockStarted", {
-        blockNum: bnum,
-        totalBlocks: Renderer.Blocks,
-        startPixel: start,
-        endPixel: end
-      });
-      pixel = new Pixel();
-      pixel.setContext(this.c);
-      for (i = o = ref = start, ref1 = end; o < ref1; i = o += 4) {
-        pixel.loc = i;
-        pixel.r = this.c.pixelData[i];
-        pixel.g = this.c.pixelData[i + 1];
-        pixel.b = this.c.pixelData[i + 2];
-        pixel.a = this.c.pixelData[i + 3];
-        this.currentJob.processFn(pixel);
-        this.c.pixelData[i] = Util.clampRGB(pixel.r);
-        this.c.pixelData[i + 1] = Util.clampRGB(pixel.g);
-        this.c.pixelData[i + 2] = Util.clampRGB(pixel.b);
-        this.c.pixelData[i + 3] = Util.clampRGB(pixel.a);
-      }
-      if (Caman.NodeJS) {
-        return Fiber["yield"](bnum);
-      } else {
-        return this.blockFinished(bnum);
-      }
-    };
-
-    Renderer.prototype.renderKernel = function(bnum, start, end) {
-      var adjust, adjustSize, bias, builder, builderIndex, divisor, i, j, k, kernel, n, name, o, p, pixel, ref, ref1, ref2, ref3, ref4, ref5, res, u, w;
+    Renderer.prototype.renderKernel = function(start, end) {
+      var aa, adjust, adjustSize, bias, builder, builderIndex, divisor, i, j, k, kernel, n, name, o, p, pixel, ref, ref1, ref2, ref3, ref4, ref5, ref6, res, u, w;
       name = this.currentJob.name;
       bias = this.currentJob.bias;
       divisor = this.currentJob.divisor;
@@ -2047,36 +2012,12 @@
         this.modPixelData[i + 2] = Util.clampRGB(res.b);
         this.modPixelData[i + 3] = this.c.pixelData[i + 3];
       }
-      if (Caman.NodeJS) {
-        return Fiber["yield"](bnum);
-      } else {
-        return this.blockFinished(bnum);
+      for (i = aa = 0, ref6 = this.c.pixelData.length; 0 <= ref6 ? aa < ref6 : aa > ref6; i = 0 <= ref6 ? ++aa : --aa) {
+        this.c.pixelData[i] = this.modPixelData[i];
       }
-    };
-
-    Renderer.prototype.blockFinished = function(bnum) {
-      var i, o, ref;
-      if (bnum >= 0) {
-        Log.debug("Block #" + bnum + " finished! Filter: " + this.currentJob.name);
-      }
-      this.blocksDone++;
-      Event.trigger(this.c, "blockFinished", {
-        blockNum: bnum,
-        blocksFinished: this.blocksDone,
-        totalBlocks: Renderer.Blocks
-      });
-      if (this.blocksDone === Renderer.Blocks) {
-        if (this.currentJob.type === Filter.Type.Kernel) {
-          for (i = o = 0, ref = this.c.pixelData.length; 0 <= ref ? o < ref : o > ref; i = 0 <= ref ? ++o : --o) {
-            this.c.pixelData[i] = this.modPixelData[i];
-          }
-        }
-        if (bnum >= 0) {
-          Log.debug("Filter " + this.currentJob.name + " finished!");
-        }
-        Event.trigger(this.c, "processComplete", this.currentJob);
-        return this.processNext();
-      }
+      Log.debug("Filter " + this.currentJob.name + " finished!");
+      Event(queue.trigger(this.c, "processComplete", this.currentJob));
+      return this.processNext();
     };
 
     Renderer.prototype.processKernel = function(adjust, kernel, divisor, bias) {

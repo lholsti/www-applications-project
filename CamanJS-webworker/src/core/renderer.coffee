@@ -1,9 +1,10 @@
 # Handles all of the various rendering methods in Caman. Most of the image modification happens 
 # here. A new Renderer object is created for every render operation.
 class Caman.Renderer
-  # The number of blocks to split the image into during the render process to simulate 
-  # concurrency. This also helps the browser manage the (possibly) long running render jobs.
-  @Blocks = if Caman.NodeJS then require('os').cpus().length else 4
+  # Working on:
+  # - remove all references to blocks
+  # Todo:
+  # - a lot :)
 
   constructor: (@c) ->
     @renderQueue = []
@@ -21,6 +22,7 @@ class Caman.Renderer
       Event.trigger @, "renderFinished"
       @finishedFn.call(@c) if @finishedFn?
 
+      @worker.postMessage {'cmd': 'sendResults'}
       return @
 
     @currentJob = @renderQueue.shift()
@@ -46,49 +48,27 @@ class Caman.Renderer
     @modPixelData = Util.dataArray(@c.pixelData.length)
 
     @worker = new Worker('../../dist/worker.js')
-    @worker.addEventListener('message', (e) ->
-      console.log 'worker said: ' +e.data)
-    @worker.postMessage = @worker.webkitPostMessage or @worker.postMessage
-
-    @processNext()
-
-  eachBlock: (fn) ->
-    # Prepare all the required render data
-    @blocksDone = 0
-
-    n = @c.pixelData.length
-    blockPixelLength = Math.floor (n / 4) / Renderer.Blocks
-    blockN = blockPixelLength * 4
-    lastBlockN = blockN + ((n / 4) % Renderer.Blocks) * 4
-
-    for i in [0...Renderer.Blocks]
-      start = i * blockN
-      end = start + (if i is Renderer.Blocks - 1 then lastBlockN else blockN)
-
-      if Caman.NodeJS
-        f = Fiber => fn.call(@, i, start, end)
-        bnum = f.run()
-        @blockFinished(bnum)
+    @worker.addEventListener('message', (e) =>
+      if e.data.cmd?
+        switch e.data.cmd
+          when "filterDone"
+            @processNext()
+          else
+            Log.debug 'unknown command'
+      else if typeof e.data is 'string'
+        Log.debug e.data
       else
-        ### TODO
-        - push returned data to context (@c)
-        - maybe ask for data only after checking if next filter is kernel as well
-        - maybe implement commands for workers
-          - change filter
-          - run filter
-          - here's image data
-          - getData
-        ###
-        console.time 'partial render'
-        myfn = (e) -> console.log(e)
-        @worker.postMessage window.JSONfn.stringify fn
+        Log.debug 'image data sent from worker'
+        newdata = new Uint8Array(e.data)
+        for i in [0...@c.pixelData.length]
+          @c.imageData.data[i] = newdata[i]
+        @c.context.putImageData(@c.imageData, 0, 0)
+    )
 
-        #arraybuffer with image data, ie. transferable object that can be sent to worker
-        ab = @c.context.getImageData( 0, 0, @c.canvas.width, @c.canvas.height ).data.buffer
-        @worker.postMessage(ab, [ab])
-
-        # fn.call(@, i, start, end)
-        console.timeEnd 'partial render'
+    @worker.postMessage = @worker.webkitPostMessage or @worker.postMessage
+    ab = @c.context.getImageData( 0, 0, @c.canvas.width, @c.canvas.height ).data.buffer
+    @worker.postMessage(ab, [ab])
+    @processNext()
 
   # The core of the image rendering, this function executes the provided filter.
   #
@@ -97,10 +77,24 @@ class Caman.Renderer
   executeFilter: ->
     Event.trigger @c, "processStart", @currentJob
 
+    #send current context/image data to worker as an arraybuffer, 
+    #ie. transferable object that can be sent to worker without copying
+    
+
     if @currentJob.type is Filter.Type.Single
-      @eachBlock @renderBlock
+      ### TODO
+      - push returned data to context (@c)
+      - maybe ask for data only after checking if next filter is kernel as well
+      - maybe implement commands for workers
+        - change filter
+        - run filter
+        - here's image data
+        - getData
+      ###
+      Log.debug @currentJob.processFn
+      @worker.postMessage {'cmd': 'renderFilter', 'filter': window.JSONfn.stringify @currentJob.processFn}
     else
-      @eachBlock @renderKernel
+      @worker.postMessage {'cmd': window.JSONfn.stringify @renderKernel}
 
   # Executes a standalone plugin
   executePlugin: ->
@@ -110,40 +104,8 @@ class Caman.Renderer
 
     @processNext()
 
-  # Renders a single block of the canvas with the current filter function
-  renderBlock: (bnum, start, end) ->
-    Log.debug "Block ##{bnum} - Filter: #{@currentJob.name}, Start: #{start}, End: #{end}"
-    Event.trigger @c, "blockStarted",
-      blockNum: bnum
-      totalBlocks: Renderer.Blocks
-      startPixel: start
-      endPixel: end
-
-    pixel = new Pixel()
-    pixel.setContext @c
-
-    for i in [start...end] by 4
-      pixel.loc = i
-
-      pixel.r = @c.pixelData[i]
-      pixel.g = @c.pixelData[i+1]
-      pixel.b = @c.pixelData[i+2]
-      pixel.a = @c.pixelData[i+3]
-
-      @currentJob.processFn pixel
-
-      @c.pixelData[i]   = Util.clampRGB pixel.r
-      @c.pixelData[i+1] = Util.clampRGB pixel.g
-      @c.pixelData[i+2] = Util.clampRGB pixel.b
-      @c.pixelData[i+3] = Util.clampRGB pixel.a
-
-    if Caman.NodeJS
-      Fiber.yield(bnum)
-    else
-      @blockFinished bnum
-
   # Applies an image kernel to the canvas
-  renderKernel: (bnum, start, end) ->
+  renderKernel: (start, end) ->
     name = @currentJob.name
     bias = @currentJob.bias
     divisor = @currentJob.divisor
@@ -184,31 +146,14 @@ class Caman.Renderer
       @modPixelData[i+2]  = Util.clampRGB(res.b)
       @modPixelData[i+3]  = @c.pixelData[i+3]
 
-    if Caman.NodeJS
-      Fiber.yield(bnum)
-    else
-      @blockFinished bnum
+    for i in [0...@c.pixelData.length]
+        @c.pixelData[i] = @modPixelData[i]
 
-  # Called when a single block is finished rendering. Once all blocks are done, we signal that this
-  # filter is finished rendering and continue to the next step.
-  blockFinished: (bnum) ->
-    Log.debug "Block ##{bnum} finished! Filter: #{@currentJob.name}" if bnum >= 0
-    @blocksDone++
+    Log.debug "Filter #{@currentJob.name} finished!"
+    Event queue.trigger @c, "processComplete", @currentJob
 
-    Event.trigger @c, "blockFinished",
-      blockNum: bnum
-      blocksFinished: @blocksDone
-      totalBlocks: Renderer.Blocks
+    @processNext()
 
-    if @blocksDone is Renderer.Blocks
-      if @currentJob.type is Filter.Type.Kernel
-        for i in [0...@c.pixelData.length]
-          @c.pixelData[i] = @modPixelData[i]
-
-      Log.debug "Filter #{@currentJob.name} finished!" if bnum >=0
-      Event.trigger @c, "processComplete", @currentJob
-
-      @processNext()
 
   # The "filter function" for kernel adjustments.
   processKernel: (adjust, kernel, divisor, bias) ->

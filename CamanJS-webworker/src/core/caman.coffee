@@ -494,7 +494,6 @@ class Caman extends Module
     Event.trigger @, "renderStart"
     
     @renderer.execute =>
-      @context.putImageData @imageData, 0, 0
       callback.call @
 
   # Reverts the canvas back to it's original state while
@@ -587,11 +586,12 @@ class Caman extends Module
   # @param [String] name Name of the filter function.
   # @param [Function] processFn The Filter function.
   # @return [Caman]
-  process: (name, processFn) ->
+  process: (name, processFn, parameters) ->
     @renderer.add
       type: Filter.Type.Single
       name: name
       processFn: processFn
+      parameters: parameters
 
     return @
 

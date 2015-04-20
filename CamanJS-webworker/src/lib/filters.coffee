@@ -377,5 +377,4 @@ Filter.register "exposure", (adjust) ->
   if adjust < 0
     ctrl1 = ctrl1.reverse()
     ctrl2 = ctrl2.reverse()
-
   @curves 'rgb', [0, 0], ctrl1, ctrl2, [255, 255]
