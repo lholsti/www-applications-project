@@ -696,11 +696,12 @@
       return pixels;
     };
 
-    Caman.prototype.process = function(name, processFn) {
+    Caman.prototype.process = function(name, processFn, parameters) {
       this.renderer.add({
         type: Filter.Type.Single,
         name: name,
-        processFn: processFn
+        processFn: processFn,
+	parameters: parameters
       });
       return this;
     };
@@ -1960,10 +1961,10 @@
           - here's image data
           - getData
          */
-        Log.debug(this.currentJob.processFn);
         return this.worker.postMessage({
           'cmd': 'renderFilter',
-          'filter': window.JSONfn.stringify(this.currentJob.processFn)
+          'filter': window.JSONfn.stringify(this.currentJob.processFn),
+	  'parameters': window.JSONfn.stringify(this.currentJob.parameters)
         });
       } else {
         return this.worker.postMessage({
@@ -2202,7 +2203,7 @@
       rgba.b = color.b;
       rgba.a = 255;
       return rgba;
-    });
+    }, {'color': color});
   });
 
   Filter.register("brightness", function(adjust) {
@@ -2212,7 +2213,7 @@
       rgba.g += adjust;
       rgba.b += adjust;
       return rgba;
-    });
+    }, {'adjust': adjust});
   });
 
   Filter.register("saturation", function(adjust) {
@@ -2230,7 +2231,7 @@
         rgba.b += (max - rgba.b) * adjust;
       }
       return rgba;
-    });
+    }, {'adjust': adjust});
   });
 
   Filter.register("vibrance", function(adjust) {
@@ -2250,7 +2251,7 @@
         rgba.b += (max - rgba.b) * amt;
       }
       return rgba;
-    });
+    }, {'adjust': adjust});
   });
 
   Filter.register("greyscale", function(adjust) {
@@ -2283,7 +2284,7 @@
       rgba.b += 0.5;
       rgba.b *= 255;
       return rgba;
-    });
+    }, {'adjust': adjust});
   });
 
   Filter.register("hue", function(adjust) {
@@ -2300,7 +2301,7 @@
       rgba.g = g;
       rgba.b = b;
       return rgba;
-    });
+    }, {'adjust': adjust});
   });
 
   Filter.register("colorize", function() {
@@ -2321,7 +2322,7 @@
       rgba.g -= (rgba.g - rgb.g) * (level / 100);
       rgba.b -= (rgba.b - rgb.b) * (level / 100);
       return rgba;
-    });
+    }, {'level': level, 'rgb': rgb});
   });
 
   Filter.register("invert", function() {
@@ -2343,7 +2344,7 @@
       rgba.g = Math.min(255, (rgba.r * (0.349 * adjust)) + (rgba.g * (1 - (0.314 * adjust))) + (rgba.b * (0.168 * adjust)));
       rgba.b = Math.min(255, (rgba.r * (0.272 * adjust)) + (rgba.g * (0.534 * adjust)) + (rgba.b * (1 - (0.869 * adjust))));
       return rgba;
-    });
+    }, {'adjust': adjust});
   });
 
   Filter.register("gamma", function(adjust) {
@@ -2352,7 +2353,7 @@
       rgba.g = Math.pow(rgba.g / 255, adjust) * 255;
       rgba.b = Math.pow(rgba.b / 255, adjust) * 255;
       return rgba;
-    });
+    }, {'adjust': adjust});
   });
 
   Filter.register("noise", function(adjust) {
@@ -2364,7 +2365,7 @@
       rgba.g += rand;
       rgba.b += rand;
       return rgba;
-    });
+    }, {'adjust': adjust});
   });
 
   Filter.register("clip", function(adjust) {
@@ -2386,7 +2387,7 @@
         rgba.b = 0;
       }
       return rgba;
-    });
+    }, {'adjust': adjust});
   });
 
   Filter.register("channels", function(options) {
@@ -2429,7 +2430,7 @@
         }
       }
       return rgba;
-    });
+    }, {'options': options});
   });
 
   Filter.register("curves", function() {
@@ -2467,13 +2468,14 @@
         bezier[i] = end[1];
       }
     }
+    
     return this.process("curves", function(rgba) {
       var ref2, w;
       for (i = w = 0, ref2 = chans.length; 0 <= ref2 ? w < ref2 : w > ref2; i = 0 <= ref2 ? ++w : --w) {
         rgba[chans[i]] = bezier[rgba[chans[i]]];
       }
       return rgba;
-    });
+    }, {'chans': chans, 'bezier': bezier});
   });
 
   Filter.register("exposure", function(adjust) {
@@ -3138,7 +3140,7 @@
   Caman.Filter.register("sunrise", function() {
     this.exposure(3.5);
     this.saturation(-5);
-    this.vibrance(50);
+    return this.vibrance(50);
     this.sepia(60);
     this.colorize("#e87b22", 10);
     this.channels({
@@ -3147,7 +3149,7 @@
     });
     this.contrast(5);
     this.gamma(1.2);
-    return this.vignette("55%", 25);
+    this.vignette("55%", 25);
   });
 
   Caman.Filter.register("crossProcess", function() {

@@ -183,7 +183,7 @@
     };
 
     Pixel.prototype.toString = function() {
-      return this.toKey();
+      return this.r + ',' +this.g +',' +this.b;
     };
 
     Pixel.prototype.toHex = function(includeAlpha) {
@@ -217,7 +217,7 @@
               return console[name].apply(console, 'Web worker', args);
             } catch (_error) {
               e = _error;
-              return console[name]('Web worker', args);
+              return console[name]('Web worker '+args);
             }
           };
         })(name);
@@ -258,7 +258,6 @@
       var i, j, pixel, ref, results;
       pixel = new Pixel();
       pixel.setContext(_this.c);
-      Log.debug(_this);
       results = [];
       for (i = j = 0, ref = self.imageData.length; j < ref; i = j += 4) {
         pixel.loc = i;
@@ -266,8 +265,8 @@
         pixel.g = self.imageData[i + 1];
         pixel.b = self.imageData[i + 2];
         pixel.a = self.imageData[i + 3];
-        Log.debug(self.processFn);
         self.processFn(pixel);
+//        console.log(pixel.toString());
         self.imageData[i] = Util.clampRGB(pixel.r);
         self.imageData[i + 1] = Util.clampRGB(pixel.g);
         self.imageData[i + 2] = Util.clampRGB(pixel.b);
@@ -279,12 +278,23 @@
 
   self.addEventListener('message', function(e) {
     if (e.data.cmd != null) {
-      Log.debug('receiving command: ' + e.data.cmd);
+      //Log.debug('receiving command: ' + e.data.cmd);
       switch (e.data.cmd) {
         case "renderFilter":
           if (self.imageData.byteLength) {
             self.processFn = parse(e.data.filter);
-            Log.debug(self.processFn);
+            if(e.data.parameters != null) {
+                params = JSON.parse(e.data.parameters);
+		for(var key in params ) {
+		  s = JSON.stringify(params[key]);
+		  if(s[0] == '[') {
+		    eval(key +'=\'' +JSON.parse(s)+'\'');
+		  }
+                  else {
+                    this[key] = JSON.parse(s);
+                  }
+		}
+            }
             self.renderFilter();
             return self.postMessage({
               'cmd': 'filterDone'
