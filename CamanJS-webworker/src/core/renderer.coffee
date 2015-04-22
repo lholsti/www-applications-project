@@ -68,6 +68,7 @@ class Caman.Renderer
     @worker.postMessage = @worker.webkitPostMessage or @worker.postMessage
     ab = @c.context.getImageData( 0, 0, @c.canvas.width, @c.canvas.height ).data.buffer
     @worker.postMessage(ab, [ab])
+    @worker.postMessage('cmd': 'imageSize','height': @c.dimensions.height, 'width': @c.dimensions.width,)
     @processNext()
 
   # The core of the image rendering, this function executes the provided filter.
@@ -91,10 +92,10 @@ class Caman.Renderer
         - here's image data
         - getData
       ###
-      Log.debug @currentJob.processFn
-      @worker.postMessage {'cmd': 'renderFilter', 'filter': window.JSONfn.stringify @currentJob.processFn}
+      Log.debug @currentJob.name + window.JSONfn.stringify(@currentJob.parameters)
+      @worker.postMessage 'cmd': 'renderFilter','filter': window.JSONfn.stringify(@currentJob.processFn), 'parameters': window.JSONfn.stringify(@currentJob.parameters)
     else
-      @worker.postMessage {'cmd': window.JSONfn.stringify @renderKernel}
+      @worker.postMessage 'cmd': window.JSONfn.stringify @renderKernel
 
   # Executes a standalone plugin
   executePlugin: ->

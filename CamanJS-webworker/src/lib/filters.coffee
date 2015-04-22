@@ -24,6 +24,8 @@ Filter.register "fillColor", ->
     rgba.b = color.b
     rgba.a = 255
     rgba
+  , 'color': color
+
 
 # ## Brightness
 # Simple brightness adjustment
@@ -38,6 +40,7 @@ Filter.register "brightness", (adjust) ->
     rgba.g += adjust
     rgba.b += adjust
     rgba
+  ,'adjust': adjust
 
 # ## Saturation
 # Adjusts the color saturation of the image.
@@ -56,6 +59,7 @@ Filter.register "saturation", (adjust) ->
     rgba.g += (max - rgba.g) * adjust if rgba.g isnt max
     rgba.b += (max - rgba.b) * adjust if rgba.b isnt max
     rgba
+  ,'adjust': adjust
 
 # ## Vibrance
 # Similar to saturation, but adjusts the saturation levels in a slightly smarter, more subtle way. 
@@ -78,6 +82,7 @@ Filter.register "vibrance", (adjust) ->
     rgba.g += (max - rgba.g) * amt if rgba.g isnt max
     rgba.b += (max - rgba.b) * amt if rgba.b isnt max
     rgba
+  ,'adjust': adjust
     
 # ## Greyscale
 # An improved greyscale function that should make prettier results
@@ -130,6 +135,7 @@ Filter.register "contrast", (adjust) ->
     rgba.b *= 255;
 
     rgba
+  , 'adjust': adjust
 
 # ## Hue
 # Adjusts the hue of the image. It can be used to shift the colors in an image in a uniform 
@@ -153,6 +159,7 @@ Filter.register "hue", (adjust) ->
     {r, g, b} = Convert.hsvToRGB hsv.h, hsv.s, hsv.v
     rgba.r = r; rgba.g = g; rgba.b = b
     rgba
+  , 'adjust': adjust
 
 # ## Colorize
 # Uniformly shifts the colors in an image towards the given color. The adjustment range is from 0 
@@ -179,6 +186,7 @@ Filter.register "colorize", ->
     rgba.g -= (rgba.g - rgb.g) * (level / 100)
     rgba.b -= (rgba.b - rgb.b) * (level / 100)
     rgba
+  , {'level': level, 'rgb': rgb}
 
 # ## Invert
 # Inverts all colors in the image by subtracting each color channel value from 255. No arguments.
@@ -206,6 +214,7 @@ Filter.register "sepia", (adjust = 100) ->
     rgba.b = Math.min(255, (rgba.r * (0.272 * adjust)) + (rgba.g * (0.534 * adjust)) + (rgba.b * (1- (0.869 * adjust))));
 
     rgba
+  , 'adjust': adjust
 
 # ## Gamma
 # Adjusts the gamma of the image.
@@ -219,6 +228,7 @@ Filter.register "gamma", (adjust) ->
     rgba.g = Math.pow(rgba.g / 255, adjust) * 255
     rgba.b = Math.pow(rgba.b / 255, adjust) * 255
     rgba
+  , 'adjust': adjust
 
 # ## Noise
 # Adds noise to the image on a scale from 1 - 100. However, the scale isn't constrained, so you 
@@ -233,6 +243,7 @@ Filter.register "noise", (adjust) ->
     rgba.g += rand
     rgba.b += rand
     rgba
+  , 'adjust': adjust
 
 # ## Clip
 # Clips a color to max values when it falls outside of the specified range.
@@ -259,6 +270,7 @@ Filter.register "clip", (adjust) ->
       rgba.b = 0
 
     rgba
+  , 'adjust': adjust
 
 # ## Channels
 # Lets you modify the intensity of any combination of red, green, or blue channels individually.
@@ -303,6 +315,7 @@ Filter.register "channels", (options) ->
         rgba.b -= rgba.b * Math.abs(options.blue)
 
     rgba
+  , 'options': options
 
 # ## Curves
 # Curves implementation using Bezier curve equation. If you're familiar with the Curves 
@@ -357,11 +370,13 @@ Filter.register "curves", (chans, cps...) ->
   end = cps[cps.length - 1]
   bezier[i] = end[1] for i in [end[0]..255] if end[0] < 255
 
+
   @process "curves", (rgba) ->
     # Now that we have the bezier curve, we do a basic hashmap lookup
     # to find and replace color values.
     rgba[chans[i]] = bezier[rgba[chans[i]]] for i in [0...chans.length]
     rgba
+  , {'chans': chans, 'bezier': bezier}
 
 # ## Exposure
 # Adjusts the exposure of the image by using the curves function.

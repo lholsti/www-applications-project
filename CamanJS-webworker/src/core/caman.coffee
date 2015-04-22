@@ -587,6 +587,7 @@ class Caman extends Module
   # @param [Function] processFn The Filter function.
   # @return [Caman]
   process: (name, processFn, parameters) ->
+    console.log 'Caman.coffee: Processing filter ' + name + parameters
     @renderer.add
       type: Filter.Type.Single
       name: name

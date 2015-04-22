@@ -696,11 +696,13 @@
       return pixels;
     };
 
-    Caman.prototype.process = function(name, processFn) {
+    Caman.prototype.process = function(name, processFn, parameters) {
+      console.log('Caman.coffee: Processing filter ' + name + parameters);
       this.renderer.add({
         type: Filter.Type.Single,
         name: name,
-        processFn: processFn
+        processFn: processFn,
+        parameters: parameters
       });
       return this;
     };
@@ -1944,6 +1946,11 @@
       this.worker.postMessage = this.worker.webkitPostMessage || this.worker.postMessage;
       ab = this.c.context.getImageData(0, 0, this.c.canvas.width, this.c.canvas.height).data.buffer;
       this.worker.postMessage(ab, [ab]);
+      this.worker.postMessage({
+        'cmd': 'imageSize',
+        'height': this.c.dimensions.height,
+        'width': this.c.dimensions.width
+      });
       return this.processNext();
     };
 
@@ -1960,10 +1967,11 @@
           - here's image data
           - getData
          */
-        Log.debug(this.currentJob.processFn);
+        Log.debug(this.currentJob.name + window.JSONfn.stringify(this.currentJob.parameters));
         return this.worker.postMessage({
           'cmd': 'renderFilter',
-          'filter': window.JSONfn.stringify(this.currentJob.processFn)
+          'filter': window.JSONfn.stringify(this.currentJob.processFn),
+          'parameters': window.JSONfn.stringify(this.currentJob.parameters)
         });
       } else {
         return this.worker.postMessage({
@@ -2202,6 +2210,8 @@
       rgba.b = color.b;
       rgba.a = 255;
       return rgba;
+    }, {
+      'color': color
     });
   });
 
@@ -2212,6 +2222,8 @@
       rgba.g += adjust;
       rgba.b += adjust;
       return rgba;
+    }, {
+      'adjust': adjust
     });
   });
 
@@ -2230,6 +2242,8 @@
         rgba.b += (max - rgba.b) * adjust;
       }
       return rgba;
+    }, {
+      'adjust': adjust
     });
   });
 
@@ -2250,6 +2264,8 @@
         rgba.b += (max - rgba.b) * amt;
       }
       return rgba;
+    }, {
+      'adjust': adjust
     });
   });
 
@@ -2283,6 +2299,8 @@
       rgba.b += 0.5;
       rgba.b *= 255;
       return rgba;
+    }, {
+      'adjust': adjust
     });
   });
 
@@ -2300,6 +2318,8 @@
       rgba.g = g;
       rgba.b = b;
       return rgba;
+    }, {
+      'adjust': adjust
     });
   });
 
@@ -2321,6 +2341,9 @@
       rgba.g -= (rgba.g - rgb.g) * (level / 100);
       rgba.b -= (rgba.b - rgb.b) * (level / 100);
       return rgba;
+    }, {
+      'level': level,
+      'rgb': rgb
     });
   });
 
@@ -2343,6 +2366,8 @@
       rgba.g = Math.min(255, (rgba.r * (0.349 * adjust)) + (rgba.g * (1 - (0.314 * adjust))) + (rgba.b * (0.168 * adjust)));
       rgba.b = Math.min(255, (rgba.r * (0.272 * adjust)) + (rgba.g * (0.534 * adjust)) + (rgba.b * (1 - (0.869 * adjust))));
       return rgba;
+    }, {
+      'adjust': adjust
     });
   });
 
@@ -2352,6 +2377,8 @@
       rgba.g = Math.pow(rgba.g / 255, adjust) * 255;
       rgba.b = Math.pow(rgba.b / 255, adjust) * 255;
       return rgba;
+    }, {
+      'adjust': adjust
     });
   });
 
@@ -2364,6 +2391,8 @@
       rgba.g += rand;
       rgba.b += rand;
       return rgba;
+    }, {
+      'adjust': adjust
     });
   });
 
@@ -2386,6 +2415,8 @@
         rgba.b = 0;
       }
       return rgba;
+    }, {
+      'adjust': adjust
     });
   });
 
@@ -2429,6 +2460,8 @@
         }
       }
       return rgba;
+    }, {
+      'options': options
     });
   });
 
@@ -2473,6 +2506,9 @@
         rgba[chans[i]] = bezier[rgba[chans[i]]];
       }
       return rgba;
+    }, {
+      'chans': chans,
+      'bezier': bezier
     });
   });
 

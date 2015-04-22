@@ -42,6 +42,7 @@ Filter.register "vignette", (size, strength = 60) ->
       rgba.b = Math.pow(rgba.b / 255, div) * 255
 
     rgba
+  , 'center': center, 'end': end, 'size': size, 'strength': strength
 
 Filter.register "rectangularVignette", (opts) ->
   defaults =
