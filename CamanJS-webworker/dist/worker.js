@@ -395,6 +395,8 @@
 
   self.processFn = void 0;
 
+  self.processname = void 0;
+
 
   /* TODO
   - edit filters to manipulate arraybuffers instead of contexts
@@ -404,10 +406,10 @@
 
   self.renderFilter = (function(_this) {
     return function() {
-      var i, k, pixel, ref;
-      console.time("workerrender" + _this.id);
+      var i, k, pixel, ref, results;
       pixel = new Pixel();
       pixel.setContext(_this.c);
+      results = [];
       for (i = k = 0, ref = self.imageData.length; k < ref; i = k += 4) {
         pixel.loc = i;
         pixel.r = self.imageData[i];
@@ -418,16 +420,15 @@
         self.imageData[i] = Util.clampRGB(pixel.r);
         self.imageData[i + 1] = Util.clampRGB(pixel.g);
         self.imageData[i + 2] = Util.clampRGB(pixel.b);
-        self.imageData[i + 3] = Util.clampRGB(pixel.a);
+        results.push(self.imageData[i + 3] = Util.clampRGB(pixel.a));
       }
-      return console.timeEnd("workerrender" + _this.id);
+      return results;
     };
   })(this);
 
   self.addEventListener('message', function(e) {
     var key, params;
     if (e.data.cmd != null) {
-      Log.debug("worker " + this.id + ": receiving command: " + e.data.cmd);
       switch (e.data.cmd) {
         case 'id':
           return this.id = e.data.id;
@@ -440,14 +441,14 @@
                 this[key] = params[key];
               }
             }
-            Log.debug("worker " + this.id + ": rendering: " + e.data.name);
+            self.processname = e.data.name;
             self.renderFilter();
             return self.postMessage({
               'cmd': 'filterDone',
               'id': this.id
             });
           } else {
-            return Log.debug('Cannot render filter with no image data.');
+
           }
           break;
         case "imageSize":
@@ -459,11 +460,9 @@
           return Log.debug('unknown command');
       }
     } else if (typeof e.data === 'string') {
-      self.processFn = parse(e.data);
-      return Log.debug('Filter sent to web worker' + this.id);
+      return self.processFn = parse(e.data);
     } else {
       self.imageData = new Uint8Array(e.data);
-      Log.debug('image data sent, length ' + self.imageData.length);
       if (self.imageData.length === 0) {
         Log.debug('0 length image');
         return Log.debug(e.data);

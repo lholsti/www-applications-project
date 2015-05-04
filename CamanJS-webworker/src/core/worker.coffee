@@ -354,7 +354,7 @@ parse = (str) ->
     )
 self.imageData = 0
 self.processFn = undefined
-
+self.processname = undefined
 ### TODO
 - edit filters to manipulate arraybuffers instead of contexts
 - edit filters to not access function context (this.*)
@@ -365,7 +365,6 @@ self.processFn = undefined
 # Renders the whole canvas with the current filter function
 # Will be run in worker, so using worker's local variables
 self.renderFilter = =>
-    console.time("workerrender#{@id}");
     pixel = new Pixel()
     pixel.setContext @c
     for i in [0...self.imageData.length] by 4
@@ -382,11 +381,10 @@ self.renderFilter = =>
       self.imageData[i+1] = Util.clampRGB pixel.g
       self.imageData[i+2] = Util.clampRGB pixel.b
       self.imageData[i+3] = Util.clampRGB pixel.a
-    console.timeEnd("workerrender#{@id}");
 
 self.addEventListener('message', (e) ->
     if e.data.cmd?
-        Log.debug "worker #{@id}: receiving command: #{e.data.cmd}"
+        #Log.debug "worker #{@id}: receiving command: #{e.data.cmd}"
         switch e.data.cmd
             when 'id'
                 @id = e.data.id
@@ -398,11 +396,12 @@ self.addEventListener('message', (e) ->
                         params = JSON.parse(e.data.parameters)
                         for key of params
                             @[key] = params[key]
-                    Log.debug "worker #{@id}: rendering: #{e.data.name}"
+                    self.processname = e.data.name
+                    #Log.debug "worker #{@id}: rendering: #{e.data.name}"
                     self.renderFilter()  
                     self.postMessage('cmd': 'filterDone', 'id':@id)
                 else
-                    Log.debug 'Cannot render filter with no image data.'
+                    #Log.debug 'Cannot render filter with no image data.'
             when "imageSize"
                 @imageHeight = e.data.height
                 @imageWidth = e.data.width
@@ -412,10 +411,10 @@ self.addEventListener('message', (e) ->
                 Log.debug 'unknown command'
     else if typeof e.data is 'string'
         self.processFn = parse e.data
-        Log.debug 'Filter sent to web worker' + @id
+        #Log.debug 'Filter sent to web worker' + @id
     else
         self.imageData = new Uint8Array(e.data)
-        Log.debug 'image data sent, length ' + self.imageData.length
+        #Log.debug 'image data sent, length ' + self.imageData.length
         if self.imageData.length is 0
             Log.debug '0 length image'
             Log.debug e.data

@@ -1873,7 +1873,7 @@
   Plugin = Caman.Plugin;
 
   Caman.Renderer = (function() {
-    Renderer.Blocks = 2;
+    Renderer.Blocks = 1;
 
     Renderer.workersFinished = 0;
 
@@ -1896,6 +1896,7 @@
 
     Renderer.prototype.processNext = function(i) {
       var layer;
+      console.timeEnd("workerrender:" + i + ":");
       if (this.workers[i].renderQueue.length === 0) {
         this.workers[i].postMessage({
           'cmd': 'sendResults'
@@ -1921,7 +1922,7 @@
           throw new Error('Plugins not implemented');
           return this.executePlugin();
         default:
-          Log.debug(this.currentJob.name + window.JSONfn.stringify(this.currentJob.parameters));
+          console.time("workerrender:" + i + ":");
           return this.workers[i].postMessage({
             'cmd': 'renderFilter',
             'filter': window.JSONfn.stringify(this.currentJob.processFn),
@@ -1945,10 +1946,8 @@
           } else if (typeof e.data === 'string') {
             return Log.debug(e.data);
           } else {
-            Log.debug('image data sent from worker');
             newdata = new Uint8Array(e.data);
             Renderer.workersFinished++;
-            console.log(startIndex + ' ' + Renderer.workersFinished + ' ' + Renderer.Blocks);
             for (j = o = 0, ref = _this.c.pixelData.length; 0 <= ref ? o < ref : o > ref; j = 0 <= ref ? ++o : --o) {
               _this.c.imageData.data[j + startIndex] = newdata[j];
             }
@@ -1972,7 +1971,6 @@
       blockPixelLength = Math.floor((n / 4) / Renderer.Blocks);
       blockN = blockPixelLength * 4;
       lastBlockN = blockN + ((n / 4) % Renderer.Blocks) * 4;
-      console.log("rendering buffersize: " + n + " with " + Renderer.Blocks + " blocks");
       this.workers = [];
       Renderer.workersFinished = 0;
       ab = this.c.context.getImageData(0, 0, this.c.canvas.width, this.c.canvas.height).data.buffer;
@@ -1980,7 +1978,6 @@
       for (i = o = 0, ref = Renderer.Blocks; 0 <= ref ? o < ref : o > ref; i = 0 <= ref ? ++o : --o) {
         start = i * blockN;
         end = start + (i === Renderer.Blocks - 1 ? lastBlockN : blockN);
-        console.log('create worker' + i);
         this.workers[i] = new Worker(Renderer.workerurl);
         this.workers[i].renderQueue = this.renderQueue.slice();
         this.workers[i].addEventListener('message', this.createWorkerListenerFunction(i * blockN));
@@ -2014,7 +2011,6 @@
           - here's image data
           - getData
          */
-        Log.debug(this.currentJob.name + window.JSONfn.stringify(this.currentJob.parameters));
         return this.worker.postMessage({
           'cmd': 'renderFilter',
           'filter': window.JSONfn.stringify(this.currentJob.processFn),

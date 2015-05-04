@@ -1,7 +1,7 @@
 # Handles all of the various rendering methods in Caman. Most of the image modification happens 
 # here. A new Renderer object is created for every render operation.
 class Caman.Renderer
-  @Blocks = 2
+  @Blocks = 1
   @workersFinished = 0
   @workerurl = 'workerurl, set in Caman.coffee'
 
@@ -18,6 +18,7 @@ class Caman.Renderer
   # for execution
   processNext: (i) =>
     # If the queue is empty, fire the finished callback
+    console.timeEnd("workerrender:#{i}:")
     if @workers[i].renderQueue.length is 0
       @workers[i].postMessage {'cmd': 'sendResults'}
       return @
@@ -42,7 +43,8 @@ class Caman.Renderer
         throw new Error('Plugins not implemented')
         @executePlugin()
       else
-        Log.debug @currentJob.name + window.JSONfn.stringify(@currentJob.parameters)
+        #Log.debug @currentJob.name + window.JSONfn.stringify(@currentJob.parameters)
+        console.time("workerrender:#{i}:")
         @workers[i].postMessage 'cmd': 'renderFilter','filter': window.JSONfn.stringify(@currentJob.processFn), 'parameters': window.JSONfn.stringify(@currentJob.parameters), 'name': @currentJob.name
 
   createWorkerListenerFunction: (startIndex) ->
@@ -56,10 +58,10 @@ class Caman.Renderer
         else if typeof e.data is 'string'
           Log.debug e.data
         else
-          Log.debug 'image data sent from worker'
+          #Log.debug 'image data sent from worker'
           newdata = new Uint8Array(e.data)
           Renderer.workersFinished++
-          console.log(startIndex + ' ' +Renderer.workersFinished + ' ' + Renderer.Blocks)
+          #console.log(startIndex + ' ' +Renderer.workersFinished + ' ' + Renderer.Blocks)
           for j in [0...@c.pixelData.length]
             @c.imageData.data[j+startIndex] = newdata[j]
           if Renderer.workersFinished is Renderer.Blocks
@@ -77,7 +79,7 @@ class Caman.Renderer
     blockN = blockPixelLength * 4
     lastBlockN = blockN + ((n / 4) % Renderer.Blocks) * 4
 
-    console.log("rendering buffersize: #{n} with #{Renderer.Blocks} blocks")
+    #console.log("rendering buffersize: #{n} with #{Renderer.Blocks} blocks")
 
     @workers = []
     Renderer.workersFinished = 0;
@@ -86,7 +88,7 @@ class Caman.Renderer
       start = i * blockN
       end = start + (if i is Renderer.Blocks - 1 then lastBlockN else blockN)
 
-      console.log('create worker' +i)
+      #console.log('create worker' +i)
       @workers[i] = new Worker(Renderer.workerurl)
       #copy renderqueues to each worker
       @workers[i].renderQueue = @renderQueue.slice()
@@ -120,7 +122,7 @@ class Caman.Renderer
         - here's image data
         - getData
       ###
-      Log.debug @currentJob.name + window.JSONfn.stringify(@currentJob.parameters)
+      #Log.debug @currentJob.name + window.JSONfn.stringify(@currentJob.parameters)
       @worker.postMessage 'cmd': 'renderFilter','filter': window.JSONfn.stringify(@currentJob.processFn), 'parameters': window.JSONfn.stringify(@currentJob.parameters)
     else
       @worker.postMessage 'cmd': window.JSONfn.stringify @renderKernel
