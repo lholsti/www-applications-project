@@ -62,7 +62,7 @@ class Caman.Renderer
           newdata = new Uint8Array(e.data)
           Renderer.workersFinished++
           #console.log(startIndex + ' ' +Renderer.workersFinished + ' ' + Renderer.Blocks)
-          for j in [0...@c.pixelData.length]
+          for j in [0...newdata.length]
             @c.imageData.data[j+startIndex] = newdata[j]
           if Renderer.workersFinished is Renderer.Blocks
             @c.context.putImageData(@c.imageData, 0, 0)

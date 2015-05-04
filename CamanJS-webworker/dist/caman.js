@@ -1948,7 +1948,7 @@
           } else {
             newdata = new Uint8Array(e.data);
             Renderer.workersFinished++;
-            for (j = o = 0, ref = _this.c.pixelData.length; 0 <= ref ? o < ref : o > ref; j = 0 <= ref ? ++o : --o) {
+            for (j = o = 0, ref = newdata.length; 0 <= ref ? o < ref : o > ref; j = 0 <= ref ? ++o : --o) {
               _this.c.imageData.data[j + startIndex] = newdata[j];
             }
             if (Renderer.workersFinished === Renderer.Blocks) {
