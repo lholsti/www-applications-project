@@ -1,5 +1,5 @@
 .big_image {
-	width: 500px;
+	width: 400px;
 	max-height: auto;
 }
 
@@ -7,4 +7,16 @@
 	padding: 10px 15px;
 	background: #4570BB;
 	color: #FFF;
+}
+
+.testN {
+	display: inline-table;
+	width: 100px;
+	margin-right: 15px;
+	text-align: right;
+}
+
+.testTime {
+	display: inline-table;
+	width: 500px;
 }
