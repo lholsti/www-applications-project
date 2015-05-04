@@ -365,6 +365,7 @@ self.processFn = undefined
 # Renders the whole canvas with the current filter function
 # Will be run in worker, so using worker's local variables
 self.renderFilter = =>
+    console.time("workerrender");
     pixel = new Pixel()
     pixel.setContext @c
     for i in [0...self.imageData.length] by 4
@@ -381,6 +382,7 @@ self.renderFilter = =>
       self.imageData[i+1] = Util.clampRGB pixel.g
       self.imageData[i+2] = Util.clampRGB pixel.b
       self.imageData[i+3] = Util.clampRGB pixel.a
+    console.timeEnd("workerrender");
 
 self.addEventListener('message', (e) ->
     if e.data.cmd?

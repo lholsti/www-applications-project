@@ -47,7 +47,7 @@ class Caman.Renderer
     @finishedFn = callback
     @modPixelData = Util.dataArray(@c.pixelData.length)
 
-    @worker = new Worker('../../dist/worker.js')
+    @worker ?= new Worker('../../dist/worker.js')
     @worker.addEventListener('message', (e) =>
       if e.data.cmd?
         switch e.data.cmd

@@ -1920,7 +1920,9 @@
       var ab;
       this.finishedFn = callback;
       this.modPixelData = Util.dataArray(this.c.pixelData.length);
-      this.worker = new Worker('../../dist/worker.js');
+      if (this.worker == null) {
+        this.worker = new Worker('../../dist/worker.js');
+      }
       this.worker.addEventListener('message', (function(_this) {
         return function(e) {
           var i, newdata, o, ref;

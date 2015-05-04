@@ -404,10 +404,10 @@
 
   self.renderFilter = (function(_this) {
     return function() {
-      var i, k, pixel, ref, results;
+      var i, k, pixel, ref;
+      console.time("workerrender");
       pixel = new Pixel();
       pixel.setContext(_this.c);
-      results = [];
       for (i = k = 0, ref = self.imageData.length; k < ref; i = k += 4) {
         pixel.loc = i;
         pixel.r = self.imageData[i];
@@ -418,9 +418,9 @@
         self.imageData[i] = Util.clampRGB(pixel.r);
         self.imageData[i + 1] = Util.clampRGB(pixel.g);
         self.imageData[i + 2] = Util.clampRGB(pixel.b);
-        results.push(self.imageData[i + 3] = Util.clampRGB(pixel.a));
+        self.imageData[i + 3] = Util.clampRGB(pixel.a);
       }
-      return results;
+      return console.timeEnd("workerrender");
     };
   })(this);
 

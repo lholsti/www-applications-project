@@ -8,18 +8,28 @@ $( document ).ready(function() {
 
 		console.log("Testing");
 		Caman('#pergola', function () {
+            console.time("total render");
+            console.time("start render");
     		this.brightness(10);
     		this.contrast(30);
     		this.sepia(60);
     		this.saturation(-30);
-    		console.time("total render");
-            console.time("partial render");
     		this.render();
-            console.timeEnd("partial render");
+            console.timeEnd("start render");
   		});
 
 	});
+
     $("#print_button").click(function() {
-        console.log('UI is responding'+ new Date());
+        increase();
     });
+
+    $( "#print_button" ).append( '<div id="text">0</strong>' );
 })
+
+
+var a = 0;
+    function increase(){
+        a++;
+        $('#text').text(a);
+}  
