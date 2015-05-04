@@ -1,14 +1,14 @@
 # Handles all of the various rendering methods in Caman. Most of the image modification happens 
 # here. A new Renderer object is created for every render operation.
 class Caman.Renderer
-  # Working on:
-  # - remove all references to blocks
-  # Todo:
-  # - a lot :)
+  @Blocks = 2
+  @workersFinished = 0
+  @workerurl = 'workerurl, set in Caman.coffee'
 
-  constructor: (@c) ->
+  constructor: (@c, worker) ->
     @renderQueue = []
     @modPixelData = null
+    Renderer.workerurl  = worker
 
   add: (job) ->
     return unless job?
@@ -16,60 +16,88 @@ class Caman.Renderer
 
   # Grabs the next operation from the render queue and passes it to Renderer
   # for execution
-  processNext: =>
+  processNext: (i) =>
     # If the queue is empty, fire the finished callback
-    if @renderQueue.length is 0
-      Event.trigger @, "renderFinished"
-      @finishedFn.call(@c) if @finishedFn?
-
-      @worker.postMessage {'cmd': 'sendResults'}
+    if @workers[i].renderQueue.length is 0
+      @workers[i].postMessage {'cmd': 'sendResults'}
       return @
 
-    @currentJob = @renderQueue.shift()
+    @currentJob = @workers[i].renderQueue.shift()
 
     switch @currentJob.type
       when Filter.Type.LayerDequeue
+        throw new Error('Layers not implemented')
         layer = @c.canvasQueue.shift()
         @c.executeLayer layer
         @processNext()
       when Filter.Type.LayerFinished
+        throw new Error('Layers not implemented')
         @c.applyCurrentLayer()
         @c.popContext()
         @processNext()
       when Filter.Type.LoadOverlay
+        throw new Error('Overlays not implemented')
         @loadOverlay @currentJob.layer, @currentJob.src
       when Filter.Type.Plugin
+        throw new Error('Plugins not implemented')
         @executePlugin()
       else
-        @executeFilter()
+        Log.debug @currentJob.name + window.JSONfn.stringify(@currentJob.parameters)
+        @workers[i].postMessage 'cmd': 'renderFilter','filter': window.JSONfn.stringify(@currentJob.processFn), 'parameters': window.JSONfn.stringify(@currentJob.parameters), 'name': @currentJob.name
+
+  createWorkerListenerFunction: (startIndex) ->
+     (e) =>
+        if e.data.cmd?
+          switch e.data.cmd
+            when "filterDone"
+              @processNext(e.data.id)
+            else
+              Log.debug 'unknown command'
+        else if typeof e.data is 'string'
+          Log.debug e.data
+        else
+          Log.debug 'image data sent from worker'
+          newdata = new Uint8Array(e.data)
+          Renderer.workersFinished++
+          console.log(startIndex + ' ' +Renderer.workersFinished + ' ' + Renderer.Blocks)
+          for j in [0...@c.pixelData.length]
+            @c.imageData.data[j+startIndex] = newdata[j]
+          if Renderer.workersFinished is Renderer.Blocks
+            @c.context.putImageData(@c.imageData, 0, 0)
+            Event.trigger @, "renderFinished"
+            @finishedFn.call(@c) if @finishedFn?
 
   execute: (callback) ->
     @finishedFn = callback
-    @modPixelData = Util.dataArray(@c.pixelData.length)
 
-    @worker ?= new Worker('../../dist/worker.js')
-    @worker.addEventListener('message', (e) =>
-      if e.data.cmd?
-        switch e.data.cmd
-          when "filterDone"
-            @processNext()
-          else
-            Log.debug 'unknown command'
-      else if typeof e.data is 'string'
-        Log.debug e.data
-      else
-        Log.debug 'image data sent from worker'
-        newdata = new Uint8Array(e.data)
-        for i in [0...@c.pixelData.length]
-          @c.imageData.data[i] = newdata[i]
-        @c.context.putImageData(@c.imageData, 0, 0)
-    )
+    n = @c.pixelData.length
+    @modPixelData = Util.dataArray(n)
 
-    @worker.postMessage = @worker.webkitPostMessage or @worker.postMessage
+    blockPixelLength = Math.floor (n / 4) / Renderer.Blocks
+    blockN = blockPixelLength * 4
+    lastBlockN = blockN + ((n / 4) % Renderer.Blocks) * 4
+
+    console.log("rendering buffersize: #{n} with #{Renderer.Blocks} blocks")
+
+    @workers = []
+    Renderer.workersFinished = 0;
     ab = @c.context.getImageData( 0, 0, @c.canvas.width, @c.canvas.height ).data.buffer
-    @worker.postMessage(ab, [ab])
-    @worker.postMessage('cmd': 'imageSize','height': @c.dimensions.height, 'width': @c.dimensions.width,)
-    @processNext()
+    for i in [0...Renderer.Blocks]
+      start = i * blockN
+      end = start + (if i is Renderer.Blocks - 1 then lastBlockN else blockN)
+
+      console.log('create worker' +i)
+      @workers[i] = new Worker(Renderer.workerurl)
+      #copy renderqueues to each worker
+      @workers[i].renderQueue = @renderQueue.slice()
+      @workers[i].addEventListener('message', @createWorkerListenerFunction(i*blockN))
+      @workers[i].postMessage = @workers[i].webkitPostMessage or @workers[i].postMessage
+      wb = ab.slice(start, end);
+      @workers[i].postMessage(wb, [wb])
+      # TODO: calculate accurate height and width for each block
+      @workers[i].postMessage('cmd': 'id','id': i)
+      @workers[i].postMessage('cmd': 'imageSize','height': @c.dimensions.height/@Blocks, 'width': @c.dimensions.width/@Blocks,)
+      @processNext(i)
 
   # The core of the image rendering, this function executes the provided filter.
   #
@@ -99,6 +127,7 @@ class Caman.Renderer
 
   # Executes a standalone plugin
   executePlugin: ->
+    throw new Error('Plugins not implemented yet.');
     Log.debug "Executing plugin #{@currentJob.plugin}"
     Plugin.execute @c, @currentJob.plugin, @currentJob.args
     Log.debug "Plugin #{@currentJob.plugin} finished!"
@@ -107,6 +136,7 @@ class Caman.Renderer
 
   # Applies an image kernel to the canvas
   renderKernel: (start, end) ->
+    throw new Error('Kernel filters not implemented yet.');
     name = @currentJob.name
     bias = @currentJob.bias
     divisor = @currentJob.divisor
@@ -172,6 +202,7 @@ class Caman.Renderer
 
   # Loads an image onto the current canvas
   loadOverlay: (layer, src) ->
+    throw new Error('Overlays not implemented yet.');
     img = new Image()
     img.onload = =>
       layer.context.drawImage img, 0, 0, @c.dimensions.width, @c.dimensions.height

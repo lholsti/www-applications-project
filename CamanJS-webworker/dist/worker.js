@@ -405,7 +405,7 @@
   self.renderFilter = (function(_this) {
     return function() {
       var i, k, pixel, ref;
-      console.time("workerrender");
+      console.time("workerrender" + _this.id);
       pixel = new Pixel();
       pixel.setContext(_this.c);
       for (i = k = 0, ref = self.imageData.length; k < ref; i = k += 4) {
@@ -420,28 +420,31 @@
         self.imageData[i + 2] = Util.clampRGB(pixel.b);
         self.imageData[i + 3] = Util.clampRGB(pixel.a);
       }
-      return console.timeEnd("workerrender");
+      return console.timeEnd("workerrender" + _this.id);
     };
   })(this);
 
   self.addEventListener('message', function(e) {
     var key, params;
     if (e.data.cmd != null) {
-      Log.debug('receiving command: ' + e.data.cmd);
+      Log.debug("worker " + this.id + ": receiving command: " + e.data.cmd);
       switch (e.data.cmd) {
+        case 'id':
+          return this.id = e.data.id;
         case "renderFilter":
           if (self.imageData.byteLength) {
             self.processFn = parse(e.data.filter);
             if (e.data.parameters != null) {
-              Log.debug('we have params');
               params = JSON.parse(e.data.parameters);
               for (key in params) {
                 this[key] = params[key];
               }
             }
+            Log.debug("worker " + this.id + ": rendering: " + e.data.name);
             self.renderFilter();
             return self.postMessage({
-              'cmd': 'filterDone'
+              'cmd': 'filterDone',
+              'id': this.id
             });
           } else {
             return Log.debug('Cannot render filter with no image data.');
@@ -457,7 +460,7 @@
       }
     } else if (typeof e.data === 'string') {
       self.processFn = parse(e.data);
-      return Log.debug('Filter sent to web worker');
+      return Log.debug('Filter sent to web worker' + this.id);
     } else {
       self.imageData = new Uint8Array(e.data);
       Log.debug('image data sent, length ' + self.imageData.length);

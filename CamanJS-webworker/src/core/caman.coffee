@@ -32,6 +32,9 @@ class Caman extends Module
   # @property [Boolean] Debug mode enables console logging.
   @DEBUG: false
 
+  # worker url
+  @Worker
+
   # @property [Boolean] Allow reverting the canvas?
   #   If your JS process is running out of memory, disabling
   #   this could help drastically.
@@ -140,7 +143,7 @@ class Caman extends Module
       @scaled = false
 
       @analyze = new Analyze @
-      @renderer = new Renderer @
+      @renderer = new Renderer @, Caman.Worker
 
       @domIsLoaded =>  
         @parseArguments(args)

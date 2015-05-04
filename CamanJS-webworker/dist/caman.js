@@ -182,6 +182,8 @@
 
     Caman.DEBUG = false;
 
+    Caman.Worker;
+
     Caman.allowRevert = true;
 
     Caman.crossOrigin = "anonymous";
@@ -242,7 +244,7 @@
         this.currentLayer = null;
         this.scaled = false;
         this.analyze = new Analyze(this);
-        this.renderer = new Renderer(this);
+        this.renderer = new Renderer(this, Caman.Worker);
         this.domIsLoaded((function(_this) {
           return function() {
             _this.parseArguments(args);
@@ -1871,11 +1873,18 @@
   Plugin = Caman.Plugin;
 
   Caman.Renderer = (function() {
-    function Renderer(c1) {
+    Renderer.Blocks = 2;
+
+    Renderer.workersFinished = 0;
+
+    Renderer.workerurl = 'workerurl, set in Caman.coffee';
+
+    function Renderer(c1, worker) {
       this.c = c1;
       this.processNext = bind(this.processNext, this);
       this.renderQueue = [];
       this.modPixelData = null;
+      Renderer.workerurl = worker;
     }
 
     Renderer.prototype.add = function(job) {
@@ -1885,51 +1894,51 @@
       return this.renderQueue.push(job);
     };
 
-    Renderer.prototype.processNext = function() {
+    Renderer.prototype.processNext = function(i) {
       var layer;
-      if (this.renderQueue.length === 0) {
-        Event.trigger(this, "renderFinished");
-        if (this.finishedFn != null) {
-          this.finishedFn.call(this.c);
-        }
-        this.worker.postMessage({
+      if (this.workers[i].renderQueue.length === 0) {
+        this.workers[i].postMessage({
           'cmd': 'sendResults'
         });
         return this;
       }
-      this.currentJob = this.renderQueue.shift();
+      this.currentJob = this.workers[i].renderQueue.shift();
       switch (this.currentJob.type) {
         case Filter.Type.LayerDequeue:
+          throw new Error('Layers not implemented');
           layer = this.c.canvasQueue.shift();
           this.c.executeLayer(layer);
           return this.processNext();
         case Filter.Type.LayerFinished:
+          throw new Error('Layers not implemented');
           this.c.applyCurrentLayer();
           this.c.popContext();
           return this.processNext();
         case Filter.Type.LoadOverlay:
+          throw new Error('Overlays not implemented');
           return this.loadOverlay(this.currentJob.layer, this.currentJob.src);
         case Filter.Type.Plugin:
+          throw new Error('Plugins not implemented');
           return this.executePlugin();
         default:
-          return this.executeFilter();
+          Log.debug(this.currentJob.name + window.JSONfn.stringify(this.currentJob.parameters));
+          return this.workers[i].postMessage({
+            'cmd': 'renderFilter',
+            'filter': window.JSONfn.stringify(this.currentJob.processFn),
+            'parameters': window.JSONfn.stringify(this.currentJob.parameters),
+            'name': this.currentJob.name
+          });
       }
     };
 
-    Renderer.prototype.execute = function(callback) {
-      var ab;
-      this.finishedFn = callback;
-      this.modPixelData = Util.dataArray(this.c.pixelData.length);
-      if (this.worker == null) {
-        this.worker = new Worker('../../dist/worker.js');
-      }
-      this.worker.addEventListener('message', (function(_this) {
+    Renderer.prototype.createWorkerListenerFunction = function(startIndex) {
+      return (function(_this) {
         return function(e) {
-          var i, newdata, o, ref;
+          var j, newdata, o, ref;
           if (e.data.cmd != null) {
             switch (e.data.cmd) {
               case "filterDone":
-                return _this.processNext();
+                return _this.processNext(e.data.id);
               default:
                 return Log.debug('unknown command');
             }
@@ -1938,22 +1947,58 @@
           } else {
             Log.debug('image data sent from worker');
             newdata = new Uint8Array(e.data);
-            for (i = o = 0, ref = _this.c.pixelData.length; 0 <= ref ? o < ref : o > ref; i = 0 <= ref ? ++o : --o) {
-              _this.c.imageData.data[i] = newdata[i];
+            Renderer.workersFinished++;
+            console.log(startIndex + ' ' + Renderer.workersFinished + ' ' + Renderer.Blocks);
+            for (j = o = 0, ref = _this.c.pixelData.length; 0 <= ref ? o < ref : o > ref; j = 0 <= ref ? ++o : --o) {
+              _this.c.imageData.data[j + startIndex] = newdata[j];
             }
-            return _this.c.context.putImageData(_this.c.imageData, 0, 0);
+            if (Renderer.workersFinished === Renderer.Blocks) {
+              _this.c.context.putImageData(_this.c.imageData, 0, 0);
+              Event.trigger(_this, "renderFinished");
+              if (_this.finishedFn != null) {
+                return _this.finishedFn.call(_this.c);
+              }
+            }
           }
         };
-      })(this));
-      this.worker.postMessage = this.worker.webkitPostMessage || this.worker.postMessage;
+      })(this);
+    };
+
+    Renderer.prototype.execute = function(callback) {
+      var ab, blockN, blockPixelLength, end, i, lastBlockN, n, o, ref, results, start, wb;
+      this.finishedFn = callback;
+      n = this.c.pixelData.length;
+      this.modPixelData = Util.dataArray(n);
+      blockPixelLength = Math.floor((n / 4) / Renderer.Blocks);
+      blockN = blockPixelLength * 4;
+      lastBlockN = blockN + ((n / 4) % Renderer.Blocks) * 4;
+      console.log("rendering buffersize: " + n + " with " + Renderer.Blocks + " blocks");
+      this.workers = [];
+      Renderer.workersFinished = 0;
       ab = this.c.context.getImageData(0, 0, this.c.canvas.width, this.c.canvas.height).data.buffer;
-      this.worker.postMessage(ab, [ab]);
-      this.worker.postMessage({
-        'cmd': 'imageSize',
-        'height': this.c.dimensions.height,
-        'width': this.c.dimensions.width
-      });
-      return this.processNext();
+      results = [];
+      for (i = o = 0, ref = Renderer.Blocks; 0 <= ref ? o < ref : o > ref; i = 0 <= ref ? ++o : --o) {
+        start = i * blockN;
+        end = start + (i === Renderer.Blocks - 1 ? lastBlockN : blockN);
+        console.log('create worker' + i);
+        this.workers[i] = new Worker(Renderer.workerurl);
+        this.workers[i].renderQueue = this.renderQueue.slice();
+        this.workers[i].addEventListener('message', this.createWorkerListenerFunction(i * blockN));
+        this.workers[i].postMessage = this.workers[i].webkitPostMessage || this.workers[i].postMessage;
+        wb = ab.slice(start, end);
+        this.workers[i].postMessage(wb, [wb]);
+        this.workers[i].postMessage({
+          'cmd': 'id',
+          'id': i
+        });
+        this.workers[i].postMessage({
+          'cmd': 'imageSize',
+          'height': this.c.dimensions.height / this.Blocks,
+          'width': this.c.dimensions.width / this.Blocks
+        });
+        results.push(this.processNext(i));
+      }
+      return results;
     };
 
     Renderer.prototype.executeFilter = function() {
@@ -1983,6 +2028,7 @@
     };
 
     Renderer.prototype.executePlugin = function() {
+      throw new Error('Plugins not implemented yet.');
       Log.debug("Executing plugin " + this.currentJob.plugin);
       Plugin.execute(this.c, this.currentJob.plugin, this.currentJob.args);
       Log.debug("Plugin " + this.currentJob.plugin + " finished!");
@@ -1991,6 +2037,7 @@
 
     Renderer.prototype.renderKernel = function(start, end) {
       var aa, adjust, adjustSize, bias, builder, builderIndex, divisor, i, j, k, kernel, n, name, o, p, pixel, ref, ref1, ref2, ref3, ref4, ref5, ref6, res, u, w;
+      throw new Error('Kernel filters not implemented yet.');
       name = this.currentJob.name;
       bias = this.currentJob.bias;
       divisor = this.currentJob.divisor;
@@ -2050,6 +2097,7 @@
 
     Renderer.prototype.loadOverlay = function(layer, src) {
       var img, proxyUrl;
+      throw new Error('Overlays not implemented yet.');
       img = new Image();
       img.onload = (function(_this) {
         return function() {
