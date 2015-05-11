@@ -17,13 +17,13 @@ $( document ).ready(function() {
     function increase(){
         a++;
         $('#text').text(a);
-        $( "#results" ).append( '<div class="resultlist"><span class="testN">' + a + '</span><span class="testTime">' + difference() + '</span></div>' );
+        $( "#results" ).append( '<tr class="resultlist"><td class="testN">' + a + '</td><td class="testTime">' + difference() + '</td></tr>' );
     }
 
 	$("#test_link").click(function() {
 
 
-        $( "#results" ).append( '<div class="resultlist"><span class="testN">Test start</span><span class="testTime">' + difference() + '</span></div>' );
+        $( "#results" ).append( '<tr class="resultlist"><td class="testN">Test start</td><td class="testTime">' + difference() + '</td></tr>' );
 
         Caman.Event.listen("renderFinished", function () {
             console.timeEnd("total render::");
